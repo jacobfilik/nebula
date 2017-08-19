@@ -50,7 +50,7 @@ import org.eclipse.swt.widgets.Display;
  * @author Laurent PHILIPPE (Add trace listeners)
  * @author Takashi Nakamoto @ Cosylab (performance improvement)
  */
-public class Trace extends Figure implements IDataProviderListener, IAxisListener {
+public class Trace extends AbstractPlotDrawable implements IDataProviderListener, IAxisListener {
 	/** Size of 'markers' used on X axis to indicate non-plottable samples */
 	final private static int MARKER_SIZE = 6;
 

@@ -80,7 +80,7 @@ public class PlotArea extends Figure {
 	public static final int BUTTON2 = 2;
 
 	final private IXYGraph xyGraph;
-	final private List<Trace> traceList = new ArrayList<Trace>();
+	final private List<AbstractPlotDrawable> traceList = new ArrayList<AbstractPlotDrawable>();
 	final private List<Grid> gridList = new ArrayList<Grid>();
 	final private List<Annotation> annotationList = new ArrayList<Annotation>();
 
@@ -154,7 +154,7 @@ public class PlotArea extends Figure {
 	 * @param trace
 	 *            the trace to be added.
 	 */
-	public void addTrace(final Trace trace) {
+	public void addTrace(final AbstractPlotDrawable trace) {
 		traceList.add(trace);
 		add(trace);
 		revalidate();
@@ -247,7 +247,7 @@ public class PlotArea extends Figure {
 	@Override
 	protected void layout() {
 		final Rectangle clientArea = getClientArea();
-		for (Trace trace : traceList) {
+		for (AbstractPlotDrawable trace : traceList) {
 			if (trace != null && trace.isVisible())
 				// Shrink will make the trace has no intersection with axes,
 				// which will make it only repaints the trace area.
@@ -362,7 +362,7 @@ public class PlotArea extends Figure {
 	/**
 	 * @return the traceList
 	 */
-	public List<Trace> getTraceList() {
+	public List<AbstractPlotDrawable> getTraceList() {
 		return traceList;
 	}
 
