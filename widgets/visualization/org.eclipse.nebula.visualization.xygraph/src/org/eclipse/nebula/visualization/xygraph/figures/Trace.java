@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import org.eclipse.draw2d.Figure;
 import org.eclipse.draw2d.Graphics;
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.draw2d.geometry.PointList;
@@ -37,6 +36,7 @@ import org.eclipse.nebula.visualization.xygraph.linearscale.Range;
 import org.eclipse.nebula.visualization.xygraph.styleprovider.IPointStyleProvider;
 import org.eclipse.nebula.visualization.xygraph.util.Preferences;
 import org.eclipse.nebula.visualization.xygraph.util.SWTConstants;
+import org.eclipse.nebular.visualisation.xygraph.plotlib.AbstractPlotArtist;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.RGB;
@@ -50,7 +50,7 @@ import org.eclipse.swt.widgets.Display;
  * @author Laurent PHILIPPE (Add trace listeners)
  * @author Takashi Nakamoto @ Cosylab (performance improvement)
  */
-public class Trace extends Figure implements IDataProviderListener, IAxisListener {
+public class Trace extends AbstractPlotArtist implements IDataProviderListener, IAxisListener {
 	/** Size of 'markers' used on X axis to indicate non-plottable samples */
 	final private static int MARKER_SIZE = 6;
 
@@ -1779,6 +1779,14 @@ public class Trace extends Figure implements IDataProviderListener, IAxisListene
 		this.xErrorBarType = null;
 		this.errorBarColor = null;
 		this.xyGraph = null;
+	}
+
+	@Override
+	protected void onAxesSet() {
+		xAxis = axes.getPrimaryXAxis();
+		yAxis = axes.getPrimaryYAxis();
+		init(xAxis, yAxis, getDataProvider());
+		
 	}
 
 }
