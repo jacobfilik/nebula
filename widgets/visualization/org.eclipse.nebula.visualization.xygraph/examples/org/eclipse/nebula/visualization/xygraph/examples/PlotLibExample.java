@@ -6,6 +6,7 @@ import org.eclipse.nebula.visualization.xygraph.figures.IXYGraph;
 import org.eclipse.nebula.visualization.xygraph.figures.Trace;
 import org.eclipse.nebula.visualization.xygraph.figures.XYGraph;
 import org.eclipse.nebular.visualisation.xygraph.plotlib.Axes;
+import org.eclipse.nebular.visualisation.xygraph.plotlib.AxesImage;
 import org.eclipse.nebular.visualisation.xygraph.plotlib.Line2D;
 import org.eclipse.nebular.visualisation.xygraph.plotlib.VectorField;
 import org.eclipse.nebula.visualization.xygraph.figures.Trace.PointStyle;
@@ -55,6 +56,19 @@ public class PlotLibExample {
 				new double[] { 10, 10, 10, 10, 10, 10, 10, 10 });
 
 		axes.addArtist(f);
+		
+		double[] im = new double[12];
+		for (int i = 0; i < im.length; i++) {
+			im[i] = i;
+		}
+		
+		double[] x = new double[] {30, 35, 40};
+		double[] y = new double[] {35, 40, 45, 50};
+		
+		AxesImage image = new AxesImage();
+		image.setData(im, x, y);
+		axes.addArtist(image);
+		
 		Display display = Display.getDefault();
 		while (!shell.isDisposed()) {
 			if (!display.readAndDispatch())

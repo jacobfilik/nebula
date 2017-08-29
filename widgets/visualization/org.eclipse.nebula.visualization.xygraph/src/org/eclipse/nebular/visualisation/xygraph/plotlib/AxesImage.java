@@ -10,87 +10,56 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.PaletteData;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
 
 public class AxesImage extends AbstractPlotArtist {
 
-	private double[] magnitude;
+	private double[] image;
 	private double[] x;
 	private double[] y;
 	private double maxMag = 1;
 	private double minMag = 0;
 	private int currentDownSampleBin = 1;
-//	private IDataset       vectors;
-//	private IDataset       normalizedMagnitude;
-//	private IDataset       normalizedAngle;
-//	private List<IDataset> axes;
 	private Axis xAxis;
 	private Axis yAxis;
-	private PolygonDecoration polyline;
 	private PaletteData palette = new PaletteData(0xff, 0xff00, 0xff0000);
-//    private Map<RGB, Color> colorMap;
 	private Color color;
+	private Rectangle screenRectangle;
+	private ScaledImageData scaledData;
 
 	public AxesImage() {
+		
+		scaledData = new ScaledImageData();
 
-		this.polyline = new PolygonDecoration();
-
-        PointList pl = new PointList();
-
-        pl.addPoint(0, 0);
-        pl.addPoint(-3, 1);
-        pl.addPoint(-3, -1);
-        polyline.setTemplate(pl);
-
-		add(polyline);
-
-//		colorMap = new HashMap<RGB, Color>(3);
 	}
 
-	public void dispose() {
-//		// TODO Check this is called
-//		for (Color col : colorMap.values()) {
-//			col.dispose();
-//		}
-//		colorMap.clear();
-	}
-
-	/**
-	 * This figure simply paints the vectors.
-	 *
-	 * TODO Downsampling!
-	 */
-	public void paint(Graphics graphics) {
-		if (getLocalBackgroundColor() != null)
-			graphics.setBackgroundColor(getLocalBackgroundColor());
-		if (getLocalForegroundColor() != null)
-			graphics.setForegroundColor(getLocalForegroundColor());
-
-		graphics.pushState();
-		try {
-			paintArrows(graphics);
-		} finally {
-			graphics.popState();
-		}
-	}
 	
-	public void setColor(Color color) {
-		this.color = color;
-	}
+	@Override
+	protected void paintFigure(Graphics graphics) {
+		
+		super.paintFigure(graphics);
 
-	private void paintArrows(Graphics graphics) {
-
-		for (int i = 0; i < magnitude.length; i++) {
-			final double mag       = maximumArrowSize*(magnitude[i]-minMag)/(maxMag-minMag);
-			final double angle     = orientation[i];
-			final double xloc      = x[i];
-			final double yloc      = y[i];
-
-			// TODO Make normalize magnitude
-			graphics.setForegroundColor(color);
-			graphics.setBackgroundColor(color);
-			paintArrow(graphics, xloc, yloc, mag, angle);
+		/**
+		 * This is not actually needed except that when there
+		 * are a number of opens of an image, e.g. when moving
+		 * around an h5 gallery with arrow keys, it looks smooth 
+		 * with this in.
+		 */
+		if (scaledData.getScaledImage()==null) {
+//			boolean imageReady = buildImageRelativeToAxes(im);
 		}
+		
+	
+		graphics.pushState();
+		
+		// Offsets and scaled image are calculated in the createScaledImage method.
+		if (scaledData.getScaledImage()!=null) {
+			buildImageRelativeToAxes(null);
+			graphics.drawImage(scaledData.getScaledImage(), scaledData.getXPosition(), scaledData.getYPosition());
+		}
+		
+		graphics.popState();
 	}
 
 	/**
@@ -100,47 +69,33 @@ public class AxesImage extends AbstractPlotArtist {
 	 * @param length  - size of arrow, normalized from magnitude of vector.
 	 * @param theta - anti-clockwise angle from 12 O'clock in radians.
 	 */
-	private void paintArrow(Graphics graphics, double xloc, double yloc, double length, double theta) {
-
-		if (!xAxis.getRange().inRange(xloc) && !yAxis.getRange().inRange(yloc)) {
-			return; // Nothing to draw
-		}
-		final int x    = xAxis.getValuePosition(xloc, false);
-		final int y    = yAxis.getValuePosition(yloc, false);
-		final double l = length/2d;
-
 		
-		
-			final int xD = (int)Math.round(l*Math.sin(theta));
-			final int yD = (int)Math.round(l*Math.cos(theta));
-			final Point one = new Point(x-xD, y-yD);
-			final Point two = new Point(x+xD, y+yD);
-		
-
-
-		graphics.drawLine(one, two);
-		polyline.setLocation(one);
-		polyline.setReferencePoint(two);
-		polyline.setScale(l/3d, l/3d);
-
-		polyline.paintFigure(graphics);
-	}
-	
-	public void setData(double[] magnitude, double[] orientation, double[] x, double[] y) {
-		this.magnitude = magnitude;
-//		this.orientation = orientation;
+	public void setData(double[] image, double[] x, double[] y) {
+		this.image = image;
 		this.x = x;
 		this.y = y;
 		
 		maxMag = Double.NEGATIVE_INFINITY;
 		minMag = Double.POSITIVE_INFINITY;
 		
-		for (int i = 0; i < magnitude.length; i++) {
-			double val = magnitude[i];
+		for (int i = 0; i < image.length; i++) {
+			double val = image[i];
 			if (val > maxMag) maxMag = val;
 			
 			if (val < minMag) minMag = val;
 		}
+		
+		byte[] buffer = new byte[image.length];
+		
+		for (int i = 0; i < image.length; i++) {
+			buffer[i] = (byte)(((image[i]-minMag)/(maxMag-minMag))*255-128);
+		}
+		
+		ImageData imageData = new ImageData(x.length, y.length, 8, palette, x.length, buffer);
+//		new ImageData(width, height, depth, palette, scanlinePad, data)
+		
+		
+		buildImageRelativeToAxes(imageData);
 	}
 
 
@@ -149,10 +104,10 @@ public class AxesImage extends AbstractPlotArtist {
 	protected void onAxesSet() {
 		this.xAxis = axes.getPrimaryXAxis();
 		this.yAxis = axes.getPrimaryYAxis();
-		
+		buildImageRelativeToAxes(null);
 	}
 	
-private boolean buildImageRelativeToAxes(ImageData imageData) {
+	private boolean buildImageRelativeToAxes(ImageData imageData) {
 		
 		// slice data to get current zoom area
 		/**     
@@ -161,7 +116,16 @@ private boolean buildImageRelativeToAxes(ImageData imageData) {
 		 *        |                  |
 		 *        |                  |
 		 *      x3,y3--------------x4,y4
+		 *      
 		 */
+		
+	byte[] buffer = new byte[image.length];
+		
+		for (int i = 0; i < image.length; i++) {
+			buffer[i] = (byte)(((image[i]-minMag)/(maxMag-minMag))*255);
+		}
+		
+		imageData = new ImageData(x.length, y.length, 8, palette, 1, buffer);
 		
 		ImageData data = imageData;
 		
@@ -181,30 +145,30 @@ private boolean buildImageRelativeToAxes(ImageData imageData) {
 		double maxY = da[3];
 		
 		//Get the data points per axis step
-		double xAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minX,maxX,xAxis));
-		double yAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minY,maxY,yAxis));
+		double xAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minX,maxX,x));
+		double yAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minY,maxY,y));
 		
 		if (Double.isNaN(xAxValPerPoint)|| Double.isNaN(yAxValPerPoint)) {
 			return false;
 		}
 		
 		//get x and y start position in data array (floored)
-		int xPix = getPositionInAxis(xDataInc ? minX : maxX,xAxis,true)/currentDownSampleBin;
-		int yPix = getPositionInAxis(yDataInc ? minY : maxY,yAxis,true)/currentDownSampleBin;
+		int xPix = getPositionInAxis(xDataInc ? minX : maxX,x,true)/currentDownSampleBin;
+		int yPix = getPositionInAxis(yDataInc ? minY : maxY,y,true)/currentDownSampleBin;
 		
 		//determine sub pixel offset in data frame
-		double xdiff = (xAxis.getDouble(xPix)-(xDataInc ? minX : maxX));
-		double ydiff = (yAxis.getDouble(yPix)-(yDataInc ? minY : maxY));
+		double xdiff = (x[xPix])-(xDataInc ? minX : maxX);
+		double ydiff = (y[yPix])-(yDataInc ? minY : maxY);
 		
 		//Determine the corresponding number of data points in x and y (floor min, ceil max)
-		int xDataPoints = getNumberOfDataPoints(minX,maxX,getAxes().get(0), xDataInc);
-		int yDataPoints = getNumberOfDataPoints(minY,maxY,getAxes().get(1), yDataInc);
+		int xDataPoints = getNumberOfDataPoints(minX,maxX,x, xDataInc);
+		int yDataPoints = getNumberOfDataPoints(minY,maxY,y, yDataInc);
 		
 		int xDataPointsDS = xDataPoints/currentDownSampleBin;
 		int yDataPointsDS = yDataPoints/currentDownSampleBin;
 		
 		//Get matching screen co-ordinates in pixels
-		double[] screenCoords = getImageCoords(1, true, xAxis, yAxis);
+		double[] screenCoords = getImageCoords(1, true, x, y);
 		
 		//calculate full number of data points
 		double realx = (maxX-minX)/xAxValPerPoint;
@@ -271,12 +235,12 @@ private boolean buildImageRelativeToAxes(ImageData imageData) {
 				if (screenRectangle == null) {
 					screenRectangle = Display.getCurrent().getPrimaryMonitor().getClientArea();
 				}
-				if (scaleWidth>screenRectangle.width*2 ||  scaleHeight>screenRectangle.height*2) {
-					logger.error("Image scaling algorithm has malfunctioned and asked for an image bigger than the screen!");
-					logger.debug("scaleWidth="+scaleWidth);
-					logger.debug("scaleHeight="+scaleHeight);
-					proceedWithScale = false;
-				}
+//				if (scaleWidth>screenRectangle.width*2 ||  scaleHeight>screenRectangle.height*2) {
+//					logger.error("Image scaling algorithm has malfunctioned and asked for an image bigger than the screen!");
+//					logger.debug("scaleWidth="+scaleWidth);
+//					logger.debug("scaleHeight="+scaleHeight);
+//					proceedWithScale = false;
+//				}
 			} catch (Throwable ne) {
 				proceedWithScale = true;
 			}
@@ -301,14 +265,14 @@ private boolean buildImageRelativeToAxes(ImageData imageData) {
 			
 		} catch (IllegalArgumentException ne) {
 			
-			logger.error("Image scaling has malfunctioned");
-			logger.debug("Trace name = "+getName());
-			logger.debug("scaleWidth = "+scaleWidth);
-			logger.debug("scaleHeight = "+scaleHeight);
-			logger.debug("width = "+width);
-			logger.debug("height = "+height);
-			logger.debug("xPix = "+xPix);
-			logger.debug("yPix = "+yPix);
+//			logger.error("Image scaling has malfunctioned");
+//			logger.debug("Trace name = "+getName());
+//			logger.debug("scaleWidth = "+scaleWidth);
+//			logger.debug("scaleHeight = "+scaleHeight);
+//			logger.debug("width = "+width);
+//			logger.debug("height = "+height);
+//			logger.debug("xPix = "+xPix);
+//			logger.debug("yPix = "+yPix);
 			
 			throw ne;
 		}
@@ -353,33 +317,40 @@ private final int getPositionInAxis(double val, double[] axis) {
 	
 	return pos;
 }
+private final int getNumberOfDataPoints(double min, double max, double[] axis, boolean increasing) {
+	
+	int minp = getPositionInAxis(min,axis,true);
+	int maxp = getPositionInAxis(max,axis,false);
+	
+	return increasing ? maxp-minp+1 : minp-maxp+1;
+}
+private final int getPositionInAxis(double val, double[] axis, boolean floor) {
+	if (axis.length == 1) return 0;
+	int pos = 0;
+	double dif = 0;
+	double test = Double.MAX_VALUE;
+	
+	for (int i = 0; i < axis.length; i++) {
+		double d = axis[i];
+		double ad = Math.abs(d-val);
+		if (ad < test) {
+			test = ad;
+			pos = i;
+			dif = d-val;
+		}
+	}
+	
+	if (floor) {
+		if (dif > 0) pos--;
+	} else {
+		if (dif < 0) pos++;
+	}
+	
+	return pos;
+	
+}
 
-//private final int getPositionInAxis(double val, IDataset axis, boolean floor) {
-//	if (axis.getSize() == 1) return 0;
-//	int pos = 0;
-//	double dif = 0;
-//	double test = Double.MAX_VALUE;
-//	Dataset a = DatasetUtils.convertToDataset(axis.clone());
-//	IndexIterator it = a.getIterator();
-//	while (it.hasNext()) {
-//		double d = a.getDouble(it.index);
-//		double ad = Math.abs(d-val);
-//		if (ad < test) {
-//			test = ad;
-//			pos = it.index;
-//			dif = d-val;
-//		}
-//	}
-//	
-//	if (floor) {
-//		if (dif > 0) pos--;
-//	} else {
-//		if (dif < 0) pos++;
-//	}
-//	
-//	return pos;
-//	
-//}
+
 private ImageData sliceImageData(ImageData imageData, int width, int height, int xPix, int yPix, int ySize) {
 	ImageData data;
 	if (imageData.depth <= 8) {
@@ -441,7 +412,7 @@ private final double[] getImageCoords(int bin, boolean pixels, double[] x, doubl
 			
 	// Bind the extent of the images to the actual data
 	double[] minMaxX= getMinMax(x);
-	double[] minMaxY= getMinMax(x);
+	double[] minMaxY= getMinMax(y);
 	
 	double minXData = minMaxX[0]/bin;
 	minX = Math.max(minXData, minX);
