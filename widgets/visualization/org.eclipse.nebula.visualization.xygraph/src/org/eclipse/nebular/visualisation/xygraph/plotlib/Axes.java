@@ -28,7 +28,7 @@ public class Axes extends XYGraph {
 			
 		}
 		artists.add(artist);
-		this.add(artist);
+		this.getPlotArea().add(artist);
 		revalidate();
 		repaint();
 	}

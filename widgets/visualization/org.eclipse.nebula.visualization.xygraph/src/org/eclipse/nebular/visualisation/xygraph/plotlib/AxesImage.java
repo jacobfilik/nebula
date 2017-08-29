@@ -16,8 +16,8 @@ import org.eclipse.swt.widgets.Display;
 public class AxesImage extends AbstractPlotArtist {
 
 	private double[] image;
-	private double[] x;
-	private double[] y;
+	private double[] xData;
+	private double[] yData;
 	private double maxMag = 1;
 	private double minMag = 0;
 	private int currentDownSampleBin = 1;
@@ -54,10 +54,10 @@ public class AxesImage extends AbstractPlotArtist {
 		graphics.pushState();
 		
 		// Offsets and scaled image are calculated in the createScaledImage method.
-		if (scaledData.getScaledImage()!=null) {
-			buildImageRelativeToAxes(null);
-			graphics.drawImage(scaledData.getScaledImage(), scaledData.getXPosition(), scaledData.getYPosition());
-		}
+		
+			boolean draw = buildImageRelativeToAxes(null);
+			if (draw) graphics.drawImage(scaledData.getScaledImage(), scaledData.getXPosition(), scaledData.getYPosition());
+		
 		
 		graphics.popState();
 	}
@@ -72,8 +72,8 @@ public class AxesImage extends AbstractPlotArtist {
 		
 	public void setData(double[] image, double[] x, double[] y) {
 		this.image = image;
-		this.x = x;
-		this.y = y;
+		this.xData = x;
+		this.yData = y;
 		
 		maxMag = Double.NEGATIVE_INFINITY;
 		minMag = Double.POSITIVE_INFINITY;
@@ -125,7 +125,7 @@ public class AxesImage extends AbstractPlotArtist {
 			buffer[i] = (byte)(((image[i]-minMag)/(maxMag-minMag))*255);
 		}
 		
-		imageData = new ImageData(x.length, y.length, 8, palette, 1, buffer);
+		imageData = new ImageData(xData.length, yData.length, 8, palette, 1, buffer);
 		
 		ImageData data = imageData;
 		
@@ -133,42 +133,41 @@ public class AxesImage extends AbstractPlotArtist {
 		if (xAxis == null || yAxis == null) return false;
 		
 		
-		boolean xDataInc = x[0] < x[x.length-1];
-		boolean yDataInc = y[0] < y[y.length-1];
-		
+		boolean xDataInc = xData[0] < xData[xData.length-1];
+		boolean yDataInc = yData[0] < yData[yData.length-1];
 		
 		//Get the axes coodinates visible on screen
-		double[] da = getImageCoords(1, false, x, y);
+		double[] da = getImageCoords(1, false, xData, yData);
 		double minX = da[0];
 		double minY = da[1];
 		double maxX = da[2];
 		double maxY = da[3];
 		
 		//Get the data points per axis step
-		double xAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minX,maxX,x));
-		double yAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minY,maxY,y));
+		double xAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minX,maxX,xData));
+		double yAxValPerPoint =  Math.abs(getAxisValuePerDataPoint(minY,maxY,yData));
 		
 		if (Double.isNaN(xAxValPerPoint)|| Double.isNaN(yAxValPerPoint)) {
 			return false;
 		}
 		
 		//get x and y start position in data array (floored)
-		int xPix = getPositionInAxis(xDataInc ? minX : maxX,x,true)/currentDownSampleBin;
-		int yPix = getPositionInAxis(yDataInc ? minY : maxY,y,true)/currentDownSampleBin;
+		int xPix = getPositionInAxis(xDataInc ? minX : maxX,xData,true)/currentDownSampleBin;
+		int yPix = getPositionInAxis(yDataInc ? minY : maxY,yData,true)/currentDownSampleBin;
 		
 		//determine sub pixel offset in data frame
-		double xdiff = (x[xPix])-(xDataInc ? minX : maxX);
-		double ydiff = (y[yPix])-(yDataInc ? minY : maxY);
+		double xdiff = (xData[xPix])-(xDataInc ? minX : maxX);
+		double ydiff = (yData[yPix])-(yDataInc ? minY : maxY);
 		
 		//Determine the corresponding number of data points in x and y (floor min, ceil max)
-		int xDataPoints = getNumberOfDataPoints(minX,maxX,x, xDataInc);
-		int yDataPoints = getNumberOfDataPoints(minY,maxY,y, yDataInc);
+		int xDataPoints = getNumberOfDataPoints(minX,maxX,xData, xDataInc);
+		int yDataPoints = getNumberOfDataPoints(minY,maxY,yData, yDataInc);
 		
 		int xDataPointsDS = xDataPoints/currentDownSampleBin;
 		int yDataPointsDS = yDataPoints/currentDownSampleBin;
 		
 		//Get matching screen co-ordinates in pixels
-		double[] screenCoords = getImageCoords(1, true, x, y);
+		double[] screenCoords = getImageCoords(1, true, xData, yData);
 		
 		//calculate full number of data points
 		double realx = (maxX-minX)/xAxValPerPoint;
@@ -184,16 +183,16 @@ public class AxesImage extends AbstractPlotArtist {
 		final int xSize = imageData.width;
 		final int ySize = imageData.height;
 		
-		double[] minMaxX = getMinMax(x);
-		double[] minMaxY = getMinMax(y);
+		double[] minMaxX = getMinMax(xData);
+		double[] minMaxY = getMinMax(yData);
 		
 		double xmin = minMaxX[0];
 		double xmax = minMaxX[1];
 		double ymin = minMaxY[0];
 		double ymax = minMaxY[1];
 		
-		double xLen = x.length;
-		double yLen = y.length;
+		double xLen = xData.length;
+		double yLen = yData.length;
 		
 		double xp = ((xmax-xmin)/(xLen-1))/2;
 		double yp = ((ymax-ymin)/(yLen-1))/2;
@@ -245,6 +244,18 @@ public class AxesImage extends AbstractPlotArtist {
 				proceedWithScale = true;
 			}
 
+			
+			Range xlocalRange = yAxis.getLocalRange();
+			Range ylocalRange = yAxis.getLocalRange();
+			
+			if (xlocalRange.getLower() > xlocalRange.getUpper()) {
+				xDataInc = !xDataInc;
+			}
+			
+			if (ylocalRange.getLower() < ylocalRange.getUpper()) {
+				yDataInc = !yDataInc;
+			}
+			
 			if (!xDataInc) scaleWidth*=-1;
 			if (!yDataInc) scaleHeight*=-1;
 			
