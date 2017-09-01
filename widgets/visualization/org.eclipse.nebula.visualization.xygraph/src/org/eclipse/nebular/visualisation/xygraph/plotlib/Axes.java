@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.draw2d.geometry.Rectangle;
+import org.eclipse.nebula.visualization.xygraph.figures.DAxesFactory;
+import org.eclipse.nebula.visualization.xygraph.figures.IAxesFactory;
 import org.eclipse.nebula.visualization.xygraph.figures.XYGraph;
 import org.eclipse.nebula.visualization.xygraph.util.XYGraphMediaFactory;
 
@@ -11,6 +13,14 @@ public class Axes extends XYGraph {
 
 	List<AbstractPlotArtist> artists = new ArrayList<>();
 	
+	public Axes() {
+		super();
+	}
+	
+	public Axes(IAxesFactory dAxesFactory) {
+		super(dAxesFactory);
+	}
+
 	public void addArtist(AbstractPlotArtist artist) {
 		artist.setAxes(this);
 		if (artist instanceof Line2D) {

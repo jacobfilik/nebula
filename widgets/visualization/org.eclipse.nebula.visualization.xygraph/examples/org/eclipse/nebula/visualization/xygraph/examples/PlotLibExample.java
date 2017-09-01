@@ -2,6 +2,7 @@ package org.eclipse.nebula.visualization.xygraph.examples;
 
 import org.eclipse.draw2d.LightweightSystem;
 import org.eclipse.nebula.visualization.xygraph.dataprovider.CircularBufferDataProvider;
+import org.eclipse.nebula.visualization.xygraph.figures.DAxesFactory;
 import org.eclipse.nebula.visualization.xygraph.figures.IXYGraph;
 import org.eclipse.nebula.visualization.xygraph.figures.ToolbarArmedXYGraph;
 import org.eclipse.nebula.visualization.xygraph.figures.Trace;
@@ -24,12 +25,11 @@ public class PlotLibExample {
 		final LightweightSystem lws = new LightweightSystem(shell);
 		
 		// create a new XY Graph.
-		Axes axes = new Axes();
+		Axes axes = new Axes(new DAxesFactory());
 		axes.setTitle("Simple Example");
 		// set it as the content of LightwightSystem
 		ToolbarArmedXYGraph toolbarArmedXYGraph = new ToolbarArmedXYGraph(axes);
 		lws.setContents(toolbarArmedXYGraph);
-
 		// create a trace data provider, which will provide the data to the
 		// trace.
 		CircularBufferDataProvider traceDataProvider = new CircularBufferDataProvider(false);
@@ -68,7 +68,7 @@ public class PlotLibExample {
 		double[] y = new double[] {0, 4, 8, 12};
 		
 		AxesImage image = new AxesImage();
-		image.setData(im, x, y);
+		image.setData(im, new int[] {4,3}, new double[]{10,20,10,20});
 		axes.addArtist(image);
 		
 //		axes.getPrimaryYAxis().setInverted(true);
