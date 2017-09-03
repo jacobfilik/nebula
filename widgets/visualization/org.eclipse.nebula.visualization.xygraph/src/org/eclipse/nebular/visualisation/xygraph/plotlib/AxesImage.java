@@ -4,15 +4,17 @@ import java.util.Arrays;
 
 import org.eclipse.draw2d.Graphics;
 import org.eclipse.draw2d.PolygonDecoration;
+import org.eclipse.draw2d.SWTGraphics;
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.draw2d.geometry.PointList;
+import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.nebula.visualization.xygraph.figures.Axis;
 import org.eclipse.nebula.visualization.xygraph.linearscale.Range;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.PaletteData;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
 
 public class AxesImage extends AbstractPlotArtist {
@@ -30,8 +32,10 @@ public class AxesImage extends AbstractPlotArtist {
 	private Axis yAxis;
 	private PaletteData palette = new PaletteData(0xff, 0xff00, 0xff0000);
 	private Color color;
-	private Rectangle screenRectangle;
+//	private Rectangle screenRectangle;
 	private ScaledImageData scaledData;
+	
+	private Image testImage;
 
 	public AxesImage() {
 		
@@ -60,11 +64,76 @@ public class AxesImage extends AbstractPlotArtist {
 		
 		// Offsets and scaled image are calculated in the createScaledImage method.
 		
-			boolean draw = buildImageRelativeToAxes(null);
-			if (draw) graphics.drawImage(scaledData.getScaledImage(), scaledData.getXPosition(), scaledData.getYPosition());
+//			boolean draw = buildImageRelativeToAxes(null);
+			if (true) {
+				Rectangle bounds2 = axes.getPlotArea().getBounds();			
+				if (graphics instanceof SWTGraphics) {
+					((SWTGraphics)graphics).setInterpolation(SWT.NONE);
+				}
+				Rectangle[] sD = calculateSrcDest();
+				graphics.drawImage(testImage, sD[0], sD[1]);
+//				graphics.drawImage(scaledData.getScaledImage(), scaledData.getXPosition(), scaledData.getYPosition());
+			}
 		
 		
 		graphics.popState();
+	}
+	
+	private Rectangle[] calculateSrcDest() {
+		Range xRange = xAxis.getLocalRange();
+		Range yRange = yAxis.getLocalRange();
+		
+		double xAxValLow = xRange.getLower();
+		double xAxValUp = xRange.getUpper();
+		double yAxValLow = yRange.getLower();
+		double yAxValUp = yRange.getUpper();
+		
+		double xAxPixLow = xAxis.getValuePrecisePosition(xAxValLow,false);
+		double xAxPixUp= xAxis.getValuePrecisePosition(xAxValUp,false);
+		double yAxPixLow = yAxis.getValuePrecisePosition(yAxValLow,false);
+		double yAxPixUp = yAxis.getValuePrecisePosition(yAxValUp,false);
+		
+		//scr position in image, axes range in image pixels
+		
+		double[] xEc = xExtent.clone();
+		Arrays.sort(xEc);
+
+		double[] yEc = yExtent.clone();
+		Arrays.sort(yEc);
+		
+		int srcX = 0;
+		int srcY = 0;
+		int srcW = shape[1];
+		int srcH = shape[0];
+		
+		//des position in screen pixels -image extent in screen pixel
+		
+		//val per pixel
+		double dx = (xAxValUp-xAxValLow)/(xAxPixUp-xAxPixLow);
+		double dy = (yAxValUp-yAxValLow)/(yAxPixLow-yAxPixUp);
+		
+		
+		if (xAxValLow <= xEc[0] && xAxValUp >= xEc[1] && yAxValLow <= yEc[0] && yAxValUp >= yEc[1]) {
+			//image all within axes
+			Rectangle src = new Rectangle(srcX, srcY, srcW, srcH);
+			Rectangle dest = new Rectangle((int)(xAxPixLow + (xEc[0]-xAxValLow)/dx), 
+				(int)(yAxPixUp + (yEc[0]-yAxValLow)/dy), 
+					(int)((xEc[1]-xEc[0])*dx), 
+					(int)((yEc[1]-yEc[0])*dy));
+			return new Rectangle[] {src, dest};
+			
+		}
+		
+		
+		
+		int destX = (int)xAxPixLow;
+		int destY = (int)yAxPixUp;
+		int destW = (int)(xAxPixUp-xAxPixLow);
+		int destH = (int)(yAxPixLow-yAxPixUp);
+		
+		Rectangle src = new Rectangle(srcX, srcY, srcW, srcH);
+		Rectangle dest = new Rectangle(destX, destY, destW, destH);
+		return new Rectangle[] {src, dest};
 	}
 
 	/**
@@ -105,7 +174,7 @@ public class AxesImage extends AbstractPlotArtist {
 //		ImageData imageData = new ImageData(shape[1], shape[0], 8, palette, 1, buffer);
 //		new ImageData(width, height, depth, palette, scanlinePad, data)
 		
-		
+		makeTestImage();
 		buildImageRelativeToAxes(null);
 	}
 
@@ -116,6 +185,20 @@ public class AxesImage extends AbstractPlotArtist {
 		this.xAxis = axes.getPrimaryXAxis();
 		this.yAxis = axes.getPrimaryYAxis();
 		buildImageRelativeToAxes(null);
+	}
+	
+	private void makeTestImage() {
+		
+		byte[] buffer = new byte[image.length];
+		
+		for (int i = 0; i < image.length; i++) {
+			buffer[i] = (byte)(((image[i]-minMag)/(maxMag-minMag))*255);
+		}
+		
+		ImageData data = new ImageData(shape[1], shape[0], 8, palette, 1, buffer);
+		
+		testImage = new Image(Display.getDefault(), data);
+		
 	}
 	
 	private boolean buildImageRelativeToAxes(ImageData imageData) {
@@ -144,22 +227,34 @@ public class AxesImage extends AbstractPlotArtist {
 		Range xRange = xAxis.getRange();
 		Range yRange = yAxis.getRange();
 		
-//		int x0 = xAxis.getValuePosition(xRange.getLower(), false);
-//		int x1 = xAxis.getValuePosition(xRange.getUpper(), false);
-//		int y0 = yAxis.getValuePosition(yRange.getLower(), false);
-//		int y1 = yAxis.getValuePosition(yRange.getUpper(), false);
+		boolean noSlice = noSliceNeeded(xRange, yRange, xExtent, yExtent);
 		
+		if (noSlice) {
+			System.out.println("no slice needed");
+		}
 		
 		int x0 = xAxis.getValuePosition(xExtent[0], false);
 		int x1 = xAxis.getValuePosition(xExtent[1], false);
 		int y0 = yAxis.getValuePosition(yExtent[0], false);
 		int y1 = yAxis.getValuePosition(yExtent[1], false);
 		
-		
-		
+		boolean xAxisInc = xRange.getLower() < xRange.getUpper();
+		boolean yAxisInc = yRange.getLower() < yRange.getUpper();
 		
 		boolean xDataInc = xExtent[0] < xExtent[1];
 		boolean yDataInc = xExtent[0] < xExtent[1];
+		
+		double xImagePixelSize = (xExtent[1]-xExtent[0])/shape[1];
+		double yImagePixelSize = (yExtent[1]-yExtent[0])/shape[0];
+		
+		//calculate slicing, should be 1 pixel larger than plot area for smooth scrolling
+		//Slice x and y starts
+		int flooredYStart = (int)Math.floor((yRange.getLower()-yExtent[0])/yImagePixelSize);
+		int flooredXStart = (int)Math.floor((xRange.getLower()-xExtent[0])/xImagePixelSize);
+		System.out.println(flooredXStart);
+		
+		//slice stops - todo
+		
 		
 		//Get the axes coodinates visible on screen
 		double[] da = getImageCoords(1, false, xExtent, yExtent);
@@ -258,9 +353,9 @@ public class AxesImage extends AbstractPlotArtist {
 			// Fix to http://jira.diamond.ac.uk/browse/SCI-926
 			boolean proceedWithScale = true;
 			try {
-				if (screenRectangle == null) {
-					screenRectangle = Display.getCurrent().getPrimaryMonitor().getClientArea();
-				}
+//				if (screenRectangle == null) {
+//					screenRectangle = Display.getCurrent().getPrimaryMonitor().getClientArea();
+//				}
 //				if (scaleWidth>screenRectangle.width*2 ||  scaleHeight>screenRectangle.height*2) {
 //					logger.error("Image scaling algorithm has malfunctioned and asked for an image bigger than the screen!");
 //					logger.debug("scaleWidth="+scaleWidth);
@@ -322,6 +417,23 @@ public class AxesImage extends AbstractPlotArtist {
 		
 		return true;
 		
+	}
+	
+	private boolean noSliceNeeded(Range x, Range y, double[] xExtent, double[] yExtent) {
+		
+		double[] xAxis = new double[] {x.getLower(), x.getUpper()};
+		Arrays.sort(xAxis);
+		
+		double[] yAxis = new double[] {y.getLower(), y.getUpper()};
+		Arrays.sort(yAxis);
+		
+		double[] yExt = yExtent.clone();
+		Arrays.sort(yExt);
+		
+		double[] xExt = xExtent.clone();
+		Arrays.sort(xExt);
+		
+		return yAxis[0] <= yExt[0] && yAxis[1] >= yExt[1] && xAxis[0] <= xExt[0] && xAxis[1] >= xExt[1]; 
 	}
 
 private final double getAxisValuePerDataPoint(double min, double max, double[] axes) {

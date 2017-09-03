@@ -68,7 +68,7 @@ public class PlotLibExample {
 		double[] y = new double[] {0, 4, 8, 12};
 		
 		AxesImage image = new AxesImage();
-		image.setData(im, new int[] {4,3}, new double[]{10,20,10,20});
+		image.setData(im, new int[] {4,3}, new double[]{10,50,10,50});
 		axes.addArtist(image);
 		
 //		axes.getPrimaryYAxis().setInverted(true);
