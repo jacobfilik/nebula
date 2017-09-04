@@ -117,9 +117,9 @@ public class AxesImage extends AbstractPlotArtist {
 			//image all within axes
 			Rectangle src = new Rectangle(srcX, srcY, srcW, srcH);
 			Rectangle dest = new Rectangle((int)(xAxPixLow + (xEc[0]-xAxValLow)/dx), 
-				(int)(yAxPixUp + (yEc[0]-yAxValLow)/dy), 
-					(int)((xEc[1]-xEc[0])*dx), 
-					(int)((yEc[1]-yEc[0])*dy));
+				(int)(yAxPixUp + (yAxValUp-yEc[1])/dy), 
+					(int)((xEc[1]-xEc[0])/dx), 
+					(int)((yEc[1]-yEc[0])/dy));
 			return new Rectangle[] {src, dest};
 			
 		}
