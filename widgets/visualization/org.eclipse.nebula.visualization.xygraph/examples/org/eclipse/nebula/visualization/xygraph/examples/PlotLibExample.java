@@ -59,16 +59,17 @@ public class PlotLibExample {
 
 		axes.addArtist(f);
 		
-		double[] im = new double[12];
+		int[] shape = new int[] {10,10};
+		
+		double[] im = new double[shape[0]*shape[1]];
 		for (int i = 0; i < im.length; i++) {
 			im[i] = i;
 		}
 		
-		double[] x = new double[] {0, 3, 6};
-		double[] y = new double[] {0, 4, 8, 12};
+		
 		
 		AxesImage image = new AxesImage();
-		image.setData(im, new int[] {4,3}, new double[]{10,50,10,50});
+		image.setData(im, shape, new double[]{10,50,10,50});
 		axes.addArtist(image);
 		
 //		axes.getPrimaryYAxis().setInverted(true);
