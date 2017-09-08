@@ -86,8 +86,6 @@ public class AxesImage extends AbstractPlotArtist {
 		double yAxValLow = yRange.getLower();
 		double yAxValUp = yRange.getUpper();
 		
-		
-		
 		double xAxPixLow = xAxis.getValuePrecisePosition(xAxValLow,false);
 		double xAxPixUp= xAxis.getValuePrecisePosition(xAxValUp,false);
 		double yAxPixLow = yAxis.getValuePrecisePosition(yAxValLow,false);
@@ -118,34 +116,40 @@ public class AxesImage extends AbstractPlotArtist {
 			return null;
 		}
 		
+		//val per pixel
+				double dx = (xAxEx[1]-xAxEx[0])/(xAxPixEx[1]-xAxPixEx[0]);
+				double dy = (yAxEx[1]-yAxEx[0])/(yAxPixEx[1]-yAxPixEx[0]);
+		
 		int srcX0 = 0;
 		int srcY0 = 0;
 		int srcX1 = shape[1];
 		int srcY1 = shape[0];
-		int srcW = srcX1-srcX0;
-		int srcH = srcY1-srcY0;
 		
-		int destX0 = (int)xAxPixEx[0];
-		int destY0 = (int)yAxPixEx[1];
-		int destX1 = (int)xAxPixEx[1];
-		int destY1 = (int)yAxPixEx[0];
+		int destX0 = (int)(xAxPixLow + (xEx[0]-xAxValLow)/dx);
+		int destY0 = (int)(yAxPixUp + (yAxValUp-yEx[1])/dy);
+		int destX1 = (int) (xAxPixUp - (xAxValUp-xEx[1])/dx);
+		int destY1 = (int) (yAxPixLow - (yEx[0]-yAxValLow)/dy);
+		int t = (int)((yEx[1]-yEx[0])/dy);
+		int tx = (int)((xEx[1]-xEx[0])/dx);
 		
 		int destW = destX1-destX0;
 		int destH = destY1-destY0;
 		//des position in screen pixels -image extent in screen pixel
 		
-		//val per pixel
-		double dx = (xAxEx[1]-xAxEx[0])/(xAxPixEx[1]-xAxPixEx[0]);
-		double dy = (yAxEx[1]-yAxEx[0])/(yAxPixEx[1]-yAxPixEx[0]);
+		
 		
 		
 		if (xAxValLow <= xEx[0] && xAxValUp >= xEx[1] && yAxValLow <= yEx[0] && yAxValUp >= yEx[1]) {
 			//image all within axes
 			Rectangle src = new Rectangle(srcX0, srcY0, srcX1-srcX0, srcY1-srcY0);
-			Rectangle dest = new Rectangle((int)(xAxPixLow + (xEx[0]-xAxValLow)/dx), 
-				(int)(yAxPixUp + (yAxValUp-yEx[1])/dy), 
-					(int)((xEx[1]-xEx[0])/dx), 
-					(int)((yEx[1]-yEx[0])/dy));
+			Rectangle dest = new Rectangle(destX0, destY0, destX1-destX0, destY1-destY0);
+//			Rectangle dest = new Rectangle((int)(xAxPixLow + (xEx[0]-xAxValLow)/dx), 
+//				(int)(yAxPixUp + (yAxValUp-yEx[1])/dy), 
+//					(int)((xEx[1]-xEx[0])/dx), 
+//					(int)((yEx[1]-yEx[0])/dy));
+			System.out.println();
+			System.out.println("dest :" + dest.toString());
+			System.out.println("src :" +src.toString());
 			return new Rectangle[] {src, dest};
 			
 		}
@@ -153,32 +157,48 @@ public class AxesImage extends AbstractPlotArtist {
 		double dx0 = xEx[0]-xAxEx[0];
 		double dx1 = xEx[1]-xAxEx[1];
 		
+		double dy0 = yEx[0]-yAxEx[0];
+		double dy1 = yEx[1]-yAxEx[1];
+		
 		if (dx0 < 0) {
-			srcX0 =-1*(int)(dx0/dDataPixX);
-			 destX0 =(int) (xAxPixLow - (xAxValLow-xEx[0])/dx  + srcX0*dDataPixX/dx);
-		 
-		 
-		 System.out.println(dDataPixX);
-			System.out.println(srcX0);
-		 
-		 if (srcX0 > srcX1) return null;
+			srcX0 = -1*(int)(dx0/dDataPixX);
+			destX0 =(int) (xAxPixLow - (xAxValLow-xEx[0])/dx  + srcX0*dDataPixX/dx);
+
+			if (srcX0 > srcX1) return null;
+			
+			destX1 =(int) (xAxPixUp - (xAxValUp-xEx[1])/dx);
 		}
 		
 		if (dx1 > 0) {
+			
+			int dsrcX1 = -1*(int)(dx1/dDataPixX);
+			srcX1 = srcX1 + dsrcX1;
+			destX1 =(int) (xAxPixUp - (xAxValUp-xEx[1])/dx  + dsrcX1*dDataPixX/dx);
+//			destX1 = (int) (xAxPixUp - (xAxValUp-xEx[1])/dx);
 			System.out.println("here");
+		}
+		
+		if (dy0 < 0) {
+			srcY1 = -1*(int)(dy1/dDataPixY);
+			destY0 =(int) (yAxPixLow - (yAxValLow-yEx[0])/dy  + srcY0*dDataPixY/dy);
+
+			if (srcY0 > srcY1) return null;
 		}
 		
 		Rectangle dest = new Rectangle((destX0), 
 				(int)(yAxPixUp + (yAxValUp-yEx[1])/dy), 
-					(int)((xEx[1]-xEx[0])/dx-srcX0*dDataPixX/dx), 
+					destX1-destX0, 
 					(int)((yEx[1]-yEx[0])/dy));
 		
-		System.out.println("dest");
-		System.out.println(dest.toString());
+//		Rectangle dest = new Rectangle((destX0), 
+//				(int)(yAxPixUp + (yAxValUp-yEx[1])/dy), 
+//					(int)((xEx[1]-xEx[0])/dx-srcX0*dDataPixX/dx), 
+//					(int)((yEx[1]-yEx[0])/dy));
 		
+		System.out.println("fulls");
 		Rectangle src1 = new Rectangle(srcX0, srcY0, srcX1-srcX0, srcY1-srcY0);
-		System.out.println("src");
-		System.out.println(src1.toString());
+		System.out.println("dest :" + dest.toString());
+		System.out.println("src :" +src1.toString());
 		return new Rectangle[] {src1, dest};
 		
 //		int destX = (int)xAxPixLow;

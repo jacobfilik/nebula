@@ -63,7 +63,7 @@ public class PlotLibExample {
 		
 		double[] im = new double[shape[0]*shape[1]];
 		for (int i = 0; i < im.length; i++) {
-			im[i] = i;
+			im[i] = i + Math.random()*shape[0]*shape[1]/5;
 		}
 		
 		
