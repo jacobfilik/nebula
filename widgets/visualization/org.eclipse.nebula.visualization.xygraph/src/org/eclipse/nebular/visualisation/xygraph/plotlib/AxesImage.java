@@ -18,8 +18,6 @@ public class AxesImage extends AbstractPlotArtist {
 
 	private double[] image;
 	private int[] shape;
-//	private double[] xData;
-//	private double[] yData;
 	double[] xExtent;
 	double[] yExtent;
 	private double maxMag = 1;
@@ -28,8 +26,6 @@ public class AxesImage extends AbstractPlotArtist {
 	private Axis xAxis;
 	private Axis yAxis;
 	private PaletteData palette = new PaletteData(0xff, 0xff00, 0xff0000);
-	private Color color;
-//	private Rectangle screenRectangle;
 	private ScaledImageData scaledData;
 	
 	private Image testImage;
@@ -91,6 +87,8 @@ public class AxesImage extends AbstractPlotArtist {
 		double yAxPixLow = yAxis.getValuePrecisePosition(yAxValLow,false);
 		double yAxPixUp = yAxis.getValuePrecisePosition(yAxValUp,false);
 		
+		
+		
 		double[] xAxEx = new double[] {xAxValLow,xAxValUp};
 		sort(xAxEx);
 		
@@ -117,8 +115,8 @@ public class AxesImage extends AbstractPlotArtist {
 		}
 		
 		//val per pixel
-				double dx = (xAxEx[1]-xAxEx[0])/(xAxPixEx[1]-xAxPixEx[0]);
-				double dy = (yAxEx[1]-yAxEx[0])/(yAxPixEx[1]-yAxPixEx[0]);
+		double dx = (xAxEx[1]-xAxEx[0])/(xAxPixEx[1]-xAxPixEx[0]);
+		double dy = (yAxEx[1]-yAxEx[0])/(yAxPixEx[1]-yAxPixEx[0]);
 		
 		int srcX0 = 0;
 		int srcY0 = 0;
@@ -128,87 +126,48 @@ public class AxesImage extends AbstractPlotArtist {
 		int destX0 = (int)(xAxPixLow + (xEx[0]-xAxValLow)/dx);
 		int destY0 = (int)(yAxPixUp + (yAxValUp-yEx[1])/dy);
 		int destX1 = (int) (xAxPixUp - (xAxValUp-xEx[1])/dx);
-		int destY1 = (int) (yAxPixLow - (yEx[0]-yAxValLow)/dy);
-		int t = (int)((yEx[1]-yEx[0])/dy);
-		int tx = (int)((xEx[1]-xEx[0])/dx);
-		
-		int destW = destX1-destX0;
-		int destH = destY1-destY0;
-		//des position in screen pixels -image extent in screen pixel
-		
-		
-		
-		
-		if (xAxValLow <= xEx[0] && xAxValUp >= xEx[1] && yAxValLow <= yEx[0] && yAxValUp >= yEx[1]) {
-			//image all within axes
-			Rectangle src = new Rectangle(srcX0, srcY0, srcX1-srcX0, srcY1-srcY0);
-			Rectangle dest = new Rectangle(destX0, destY0, destX1-destX0, destY1-destY0);
-//			Rectangle dest = new Rectangle((int)(xAxPixLow + (xEx[0]-xAxValLow)/dx), 
-//				(int)(yAxPixUp + (yAxValUp-yEx[1])/dy), 
-//					(int)((xEx[1]-xEx[0])/dx), 
-//					(int)((yEx[1]-yEx[0])/dy));
-			System.out.println();
-			System.out.println("dest :" + dest.toString());
-			System.out.println("src :" +src.toString());
-			return new Rectangle[] {src, dest};
-			
-		}
+		int destY1 = (int) (yAxPixLow - (yEx[0]-yAxValLow)/dy);		
 		
 		double dx0 = xEx[0]-xAxEx[0];
 		double dx1 = xEx[1]-xAxEx[1];
 		
-		double dy0 = yEx[0]-yAxEx[0];
-		double dy1 = yEx[1]-yAxEx[1];
+		double dy1 = yEx[0]-yAxEx[0];
+		double dy0 = yEx[1]-yAxEx[1];
 		
 		if (dx0 < 0) {
 			srcX0 = -1*(int)(dx0/dDataPixX);
-			destX0 =(int) (xAxPixLow - (xAxValLow-xEx[0])/dx  + srcX0*dDataPixX/dx);
-
+			destX0 += (srcX0*dDataPixX/dx);
 			if (srcX0 > srcX1) return null;
-			
-			destX1 =(int) (xAxPixUp - (xAxValUp-xEx[1])/dx);
 		}
 		
 		if (dx1 > 0) {
-			
 			int dsrcX1 = -1*(int)(dx1/dDataPixX);
 			srcX1 = srcX1 + dsrcX1;
-			destX1 =(int) (xAxPixUp - (xAxValUp-xEx[1])/dx  + dsrcX1*dDataPixX/dx);
-//			destX1 = (int) (xAxPixUp - (xAxValUp-xEx[1])/dx);
-			System.out.println("here");
+			destX1 += (dsrcX1*dDataPixX/dx);
 		}
 		
-		if (dy0 < 0) {
-			srcY1 = -1*(int)(dy1/dDataPixY);
-			destY0 =(int) (yAxPixLow - (yAxValLow-yEx[0])/dy  + srcY0*dDataPixY/dy);
+		if (dy0 > 0) {
+			srcY0 = (int)(dy0/dDataPixY);
+			destY0 += (srcY0*dDataPixY/dy);
+		
+		}
+		
+		if (dy1 < 0) {
+			int dsrcY1 = (int)(dy1/dDataPixY);
+			srcY1 = srcY1 + dsrcY1;
+			destY1 += (dsrcY1*dDataPixY/dy);
+		}
+		
+		Rectangle dest = new Rectangle(destX0, 
+				destY0, 
+				destX1-destX0, 
+				destY1-destY0);
 
-			if (srcY0 > srcY1) return null;
-		}
-		
-		Rectangle dest = new Rectangle((destX0), 
-				(int)(yAxPixUp + (yAxValUp-yEx[1])/dy), 
-					destX1-destX0, 
-					(int)((yEx[1]-yEx[0])/dy));
-		
-//		Rectangle dest = new Rectangle((destX0), 
-//				(int)(yAxPixUp + (yAxValUp-yEx[1])/dy), 
-//					(int)((xEx[1]-xEx[0])/dx-srcX0*dDataPixX/dx), 
-//					(int)((yEx[1]-yEx[0])/dy));
-		
-		System.out.println("fulls");
 		Rectangle src1 = new Rectangle(srcX0, srcY0, srcX1-srcX0, srcY1-srcY0);
-		System.out.println("dest :" + dest.toString());
-		System.out.println("src :" +src1.toString());
+//		System.out.println("dest :" + dest.toString());
+//		System.out.println("src :" +src1.toString());
 		return new Rectangle[] {src1, dest};
 		
-//		int destX = (int)xAxPixLow;
-//		int destY = (int)yAxPixUp;
-//		int destW = (int)(xAxPixUp-xAxPixLow);
-//		int destH = (int)(yAxPixLow-yAxPixUp);
-//		
-//		Rectangle src = new Rectangle(srcX, srcY, srcW, srcH);
-//		Rectangle dest = new Rectangle(destX, destY, destW, destH);
-//		return new Rectangle[] {src, dest};
 	}
 	
 	private void sort(double[] array) {

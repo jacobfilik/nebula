@@ -30,6 +30,20 @@ public class PlotLibExample {
 		// set it as the content of LightwightSystem
 		ToolbarArmedXYGraph toolbarArmedXYGraph = new ToolbarArmedXYGraph(axes);
 		lws.setContents(toolbarArmedXYGraph);
+		
+		int[] shape = new int[] {10,10};
+		
+		double[] im = new double[shape[0]*shape[1]];
+		for (int i = 0; i < im.length; i++) {
+			im[i] = i + Math.random()*shape[0]*shape[1]/5;
+		}
+		
+		AxesImage image = new AxesImage();
+		image.setData(im, shape, new double[]{10,50,10,50});
+		axes.addArtist(image);
+		
+		
+		
 		// create a trace data provider, which will provide the data to the
 		// trace.
 		CircularBufferDataProvider traceDataProvider = new CircularBufferDataProvider(false);
@@ -59,18 +73,7 @@ public class PlotLibExample {
 
 		axes.addArtist(f);
 		
-		int[] shape = new int[] {10,10};
 		
-		double[] im = new double[shape[0]*shape[1]];
-		for (int i = 0; i < im.length; i++) {
-			im[i] = i + Math.random()*shape[0]*shape[1]/5;
-		}
-		
-		
-		
-		AxesImage image = new AxesImage();
-		image.setData(im, shape, new double[]{10,50,10,50});
-		axes.addArtist(image);
 		
 //		axes.getPrimaryYAxis().setInverted(true);
 		
